@@ -120,66 +120,71 @@ namespace thZero.Services
             {
                 string key = Key(bucketName, folder);
 
-                IDisposable lockResult = null;
+                //IDisposable lockResult = null;
                 try
                 {
-                    lockResult = await _lock.ReaderLockAsync();
+                    //lockResult = await _lock.ReaderLockAsync();
 
                     if (_cache.ContainsKey(key))
                         return _cache[key];
                 }
                 finally
                 {
-                    if (lockResult != null)
-                        lockResult.Dispose();
+                    //if (lockResult != null)
+                    //    lockResult.Dispose();
                 }
 
                 try
                 {
-                    lockResult = await _lock.WriterLockAsync();
+                    //lockResult = await _lock.WriterLockAsync();
+                    using (await _mutex.LockAsync())
+                    {
+                        if (_cache.ContainsKey(key))
+                            return _cache[key];
 
-                    ListObjectsV2Response response;
-                    ListObjectsV2Request request = new ListObjectsV2Request
-                    {
-                        BucketName = bucketName,
-                        Prefix = folder,
-                        MaxKeys = 50
-                    };
-                    do
-                    {
-                        response = await Service.ListObjectsV2Async(request);
-                    
-                        FileObject found;
-                        string[] split;
-                        string[] split2;
-                        foreach (S3Object entry in response.S3Objects)
+                        ListObjectsV2Response response;
+                        ListObjectsV2Request request = new ListObjectsV2Request
                         {
-                            if (entry.Key.EndsWith(SeparatorSlash.ToString()))
-                                continue;
+                            BucketName = bucketName,
+                            Prefix = folder,
+                            MaxKeys = 50
+                        };
+                        do
+                        {
+                            response = await Service.ListObjectsV2Async(request);
 
-                            found = new FileObject();
-                            found.Url = entry.Key;
+                            FileObject found;
+                            string[] split;
+                            string[] split2;
+                            foreach (S3Object entry in response.S3Objects)
+                            {
+                                if (entry.Key.EndsWith(SeparatorSlash.ToString()))
+                                    continue;
 
-                            split = entry.Key.Split(SeparatorSlash);
-                            split2 = split[split.Length - 1].Split(SeparatorExtension);
-                            found.Name = split2[0];
-                            if (split2.Length > 1)
-                                found.Extension = split2[1];
+                                found = new FileObject();
+                                found.Url = entry.Key;
 
-                            results.Files.Add(found);
+                                split = entry.Key.Split(SeparatorSlash);
+                                split2 = split[split.Length - 1].Split(SeparatorExtension);
+                                found.Name = split2[0];
+                                if (split2.Length > 1)
+                                    found.Extension = split2[1];
+
+                                results.Files.Add(found);
+                            }
+
+                            request.ContinuationToken = response.NextContinuationToken;
                         }
+                        while (response.IsTruncated);
 
-                        request.ContinuationToken = response.NextContinuationToken;
+                        if (!_cache.ContainsKey(key))
+                            _cache.Add(key, results);
                     }
-                    while (response.IsTruncated);
-
-                    if (!_cache.ContainsKey(key))
-                        _cache.Add(key, results);
                 }
                 finally
                 {
-                    if (lockResult != null)
-                        lockResult.Dispose();
+                    //if (lockResult != null)
+                    //    lockResult.Dispose();
                 }
             }
             catch (Exception ex)
@@ -205,6 +210,7 @@ namespace thZero.Services
         #region Fields
         private static readonly IDictionary<string, FileObject> _cache = new Dictionary<string, FileObject>();
         private readonly AsyncReaderWriterLock _lock = new AsyncReaderWriterLock();
+        private readonly AsyncLock _mutex = new AsyncLock();
         #endregion
 
         #region Constants
