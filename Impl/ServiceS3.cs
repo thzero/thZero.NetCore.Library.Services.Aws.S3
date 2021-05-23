@@ -31,7 +31,7 @@ using Amazon.S3.Model;
 
 namespace thZero.Services
 {
-    public class ServiceS3 : ServiceLoggableBase<ServiceS3>, IServiceS3
+    public class ServiceS3 : ServiceBase<ServiceS3>, IServiceS3
     {
         public ServiceS3(IAmazonS3 serviceS3, ILogger<ServiceS3> logger) : base(logger)
         {
