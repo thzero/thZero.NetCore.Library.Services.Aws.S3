@@ -42,7 +42,7 @@ namespace thZero.Services
         {
             const string Declaration = "ListAsync";
 
-            FileObject results = new FileObject();
+            FileObject results = new();
 
             try
             {
@@ -79,8 +79,10 @@ namespace thZero.Services
                                 found = temp.Files.Where(l => l.Name.EqualsIgnore(item)).FirstOrDefault();
                                 if (found == null)
                                 {
-                                    found = new FileObject();
-                                    found.Name = item;
+                                    found = new FileObject
+                                    {
+                                        Name = item
+                                    };
 
                                     split2 = item.Split('.');
                                     if (split2.Length > 1)
@@ -114,7 +116,7 @@ namespace thZero.Services
         {
             const string Declaration = "ListAsync";
 
-            FileObject results = new FileObject();
+            FileObject results = new();
 
             try
             {
@@ -143,7 +145,7 @@ namespace thZero.Services
                             return _cache[key];
 
                         ListObjectsV2Response response;
-                        ListObjectsV2Request request = new ListObjectsV2Request
+                        ListObjectsV2Request request = new()
                         {
                             BucketName = bucketName,
                             Prefix = folder,
@@ -161,8 +163,10 @@ namespace thZero.Services
                                 if (entry.Key.EndsWith(SeparatorSlash.ToString()))
                                     continue;
 
-                                found = new FileObject();
-                                found.Url = entry.Key;
+                                found = new FileObject
+                                {
+                                    Url = entry.Key
+                                };
 
                                 split = entry.Key.Split(SeparatorSlash);
                                 split2 = split[split.Length - 1].Split(SeparatorExtension);
@@ -209,8 +213,8 @@ namespace thZero.Services
 
         #region Fields
         private static readonly IDictionary<string, FileObject> _cache = new Dictionary<string, FileObject>();
-        private readonly AsyncReaderWriterLock _lock = new AsyncReaderWriterLock();
-        private readonly AsyncLock _mutex = new AsyncLock();
+        //private readonly AsyncReaderWriterLock _lock = new AsyncReaderWriterLock();
+        private readonly AsyncLock _mutex = new();
         #endregion
 
         #region Constants
